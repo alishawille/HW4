@@ -1,0 +1,276 @@
+---
+title: "HW4"
+author: "Alisha Wille - afw599"
+date: "2025-02-17"
+output: pdf_document
+---
+
+GitHub Link: <https://github.com/alishawille/HW4>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+# data
+letter_freq <- read.csv("letter_frequencies.csv")
+
+# libraries
+library(ggplot2)
+library(viridis)
+```
+
+## Problem 1
+
+```{r}
+# set parameters
+set.seed(123)
+n_simulations <- 100000
+n_trades <- 2021
+p_flagged <- 0.024
+observed_flags <- 70
+
+# monte carlo simulation under null hypothesis
+simulated_flags <- rbinom(n_simulations, size = n_trades, prob = p_flagged)
+
+# compute p-value - probability of at least 70 flags
+p_value <- mean(simulated_flags >= observed_flags)
+
+# make df
+sim_trades_data <- data.frame(flagged_trades = simulated_flags)
+
+# distribution of simulated flagged trades
+ggplot(sim_trades_data, aes(x = flagged_trades)) +
+  geom_histogram(binwidth = 1, fill = "#47C16EFF", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = observed_flags, color = "#440154FF", linetype = "dashed", size = 1.2) +
+  labs(title = "Null Distribution of Flagged Trades",
+       x = "Number of Flagged Trades",
+       y = "Frequency") +
+   annotate("text", x = observed_flags + 5, y = max(table(simulated_flags)) * 0.8, 
+           label = paste("Observed =", observed_flags), color = "#440154FF", size = 3.5)
+
+# print p-value
+cat("P-value:", p_value)
+```
+
+I am testing the null hypothesis that the 70 Iron Bank employee trades out of the last 2021 flagged by the SEC's detection algorithm were flagged at the 2.4% baseline rate as that of other traders.
+
+The test statistic is the number of flagged trades in the given sample of 2021 trades.
+
+The graph above shows the probability distribution of the test statistic, which is the number of flagged trades. The dashed line shows the number of observed flagged trades in the data. The p-value is 0.002.
+
+Due to the p-value being so low, the null-hypothesis that the Iron Bank flagged trades are randomly flagged at the baseline rate is not plausible.
+
+## Problem 2
+
+```{r}
+# set parameters
+set.seed(456)
+n_simulations <- 100000
+n_inspections <- 50
+p_violation <- 0.03
+observed_violations <- 8
+
+# monte carlo simulation under null hypothesis
+simulated_violations <- rbinom(n_simulations, size = n_inspections, prob = p_violation)
+
+# compute p-value - probability of at least 70 flags
+p_inspection_value <- mean(simulated_violations >= observed_violations)
+
+# make df
+sim_violations_data <- data.frame(violations = simulated_violations)
+
+# distribution of simulated flagged trades
+ggplot(sim_violations_data, aes(x = violations)) +
+  geom_histogram(binwidth = 1, fill = "#47C16EFF", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = observed_violations, color = "#440154FF", linetype = "dashed", size = 1.2) +
+  labs(title = "Null Distribution of Health Code Violations",
+       x = "Number of Violations in 50 Inspections",
+       y = "Frequency") +
+   annotate("text", x = observed_violations + 1, y = max(table(simulated_violations)) * 0.8, 
+           label = paste("Observed =", observed_violations), color = "#440154FF", size = 3.5)
+
+# print p-value
+cat("P-value:", p_inspection_value)
+```
+
+The null hypothesis I am testing is that Gourmet Bites' rate of 8 health code violations out of 50 aligns with the citywide average of 3% .
+
+The test statistic is the number of health code violations for Gourmet Bites out of the given sample of 50.
+
+The graph above shows the probability distribution of the test statistic, which is the number of health code violations. The dashed line shows the number of health code violations for Gourmet Bites. The p-value is 0.00022.
+
+Due to the p-value being so low, the null-hypothesis that the Gourmet Bites health code violation rate is due to the random citywide average of 3% health code violations is not plausible.
+
+## Problem 3
+
+I am using the Chi-Square Goodness-of-Fit Test.
+
+The null hypothesis is that the judge's jury selection follows the county's demographic proportions.
+
+The alternative hypothesis is that the judge's jury selection does not follow the county's demographic proportions.
+
+I first computed the expected count for each group based on the demographic breakdown of the eligible jury pool. I computed this by multiplying 20 trials of 12 jurors by the percentage of each group. My results of the expected number of jurors for each group are as follows below.
+
+| Group 1 | Group 2 | Group 3 | Group 4 | Group 5 |
+|:-------:|:-------:|:-------:|:-------:|:-------:|
+|   72    |   60    |   48    |   36    |   24    |
+
+I then conducted my Chi-Square Goodness-of-Fit Test.
+
+```{r}
+# set observed and expected counts
+jury_observed <- c(85, 56, 59, 27, 13)
+jury_expected <- c(72, 60, 48, 36, 24)
+
+# perform, chi-square test
+chi_test_jury <- chisq.test(jury_observed, p = jury_expected / sum(jury_expected))
+
+print(chi_test_jury)
+```
+
+The X-squared value is 12.426, indicated a large discrepancy in observed and expected counts for each group. The degrees of freedom is 4 because there are 5 categories and 1 is subtracted for the goodness-of-fit test. The p-value is 0.01445. The small p-value suggests that the observed distribution in the groups deviates significantly from the expected distribution, implying that the judge's jury selection is biased.
+
+```{r}
+# graph of observed v. expected counts
+group_labels <- c("Group 1", "Group 2", "Group 3", "Group 4", "Group 5")
+
+jury_df <- data.frame(
+  Group = rep(group_labels, 2),
+  Count = c(jury_observed, jury_expected),
+  Type = rep(c("Observed", "Expected"), each = 5)
+)
+
+ggplot(jury_df, aes(x = Group, y = Count, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  scale_fill_manual(values = viridis(2)) +
+  labs(
+    title = "Observed v. Expected Jury Selection",
+    x = "Demographic Group",
+    y = "Count"
+  )
+```
+
+The graph visualizes the extent of the discrepancies of expected v. observed counts for each group.
+
+This alone does not suggest systematic bias in jury selection. Other explanations could include this one judge being an outlier, or unintentional exclusion of certain groups through selection processes such as voter registration, and more. This issue could be investigated further by comparing jury selection for multiple juidges or further investigated the processes of how jurors are chosen before reaching the courts.
+
+## Problem 4
+
+### Part A
+
+```{r}
+# read brown_sentences file
+sentences <- readLines("brown_sentences.txt")
+
+# preprocess text
+clean_text <- gsub("[^A-Za-z]", "", sentences)
+clean_text <- toupper(clean_text)
+
+# compute letter frequency for a given sentence
+compute_letter_count <- function(sentences) {
+  letter_counts <- table(strsplit(sentences, NULL)[[1]])
+  full_counts <- rep(0,26)
+  names(full_counts) <- LETTERS
+  full_counts[names(letter_counts)] <- letter_counts
+  return(full_counts)
+}
+
+# apply function to all sentences
+observed_counts <- lapply(clean_text, compute_letter_count)
+
+# convert to matrix
+observed_matrix <- do.call(rbind, observed_counts)
+
+# convert letter_freq to proportion
+english_freq <- setNames(letter_freq$Probability / sum(letter_freq$Probability), letter_freq$Letter)
+
+# compute expected counts based on sentence length
+compute_expected_counts <- function(sentence_length) {
+  return(sentence_length*english_freq)
+}
+
+# compute expected letter counts for each sentence
+expected_matrix <- t(sapply(nchar(clean_text), compute_expected_counts))
+
+# compute chi-squared statistic for single sentence
+compute_chi_squared <- function(observed, expected) {
+  chi_sq <- sum((observed - expected)^2 / expected, na.rm = TRUE)
+  return(chi_sq)
+}
+
+# compute chi-squares for each sentence
+chi_squared_values <- mapply(compute_chi_squared,
+                             split(observed_matrix, row(observed_matrix)),
+                             split(expected_matrix, row(expected_matrix)))
+
+# make df
+chi_sq_df <- data.frame(Chi_Squared = chi_squared_values)
+
+# plot histogram
+ggplot(chi_sq_df, aes(x = Chi_Squared)) +
+  geom_histogram(binwidth = 5, fill = "#47C16EFF", alpha = 0.7, color = "black") +
+  labs(
+    title = "Chi-Square Distribution of Brown Corpus Sentences",
+    x = "Chi-Square Statistic",
+    y = "Frequency"
+  )
+
+```
+
+The graph shows the distribution of Brown Corpus sentences for the range of chi-squared values expected in normal English sentences based on predefined letter frequency distribution.
+
+### Part B
+
+```{r}
+# sentences vector
+sentences_test <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+# clean sentences
+clean_text_test <- gsub("[^A-Za-z]", "", sentences_test)
+clean_text_test <- toupper(clean_text_test)
+
+# apply letter counting function
+observed_counts_test <- lapply(clean_text_test, compute_letter_count)
+
+# convert list to matrix
+observed_matrix_test <- do.call(rbind, observed_counts_test)
+
+compute_expected_counts_b <- function(sentence_length) {
+  return(sentence_length * english_freq)
+}
+
+# compute expected letter counts for each sentence
+expected_matrix_test <- t(sapply(nchar(clean_text_test), compute_expected_counts_b))
+
+compute_chi_squared_b <- function(observed, expected) {
+  chi_sq_b <- sum((observed - expected)^2 / expected, na.rm = TRUE)
+  return(chi_sq_b)
+}
+
+# compute chi-square values for test sentences
+chi_sq_values_test <- mapply(compute_chi_squared,
+                             split(observed_matrix_test, row(observed_matrix_test)),
+                             split(expected_matrix_test, row(expected_matrix_test)))
+
+# compute p-values
+p_values <- sapply(chi_sq_values_test, function(x) mean(chi_squared_values >= x))
+
+# display results
+p_value_table <- data.frame(Sentence = 1:10, Chi_Squared = chi_sq_values_test, P_Value = round(p_values, 3))
+
+print(p_value_table)
+```
+
+The table shows the p-value for each of the ten sentences. Sentence 6 is most likely the LLM generated sentence due to it having the lowest p-value, 0.009, out of all the other sentences.
